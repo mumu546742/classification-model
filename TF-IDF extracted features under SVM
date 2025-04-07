@@ -1,0 +1,79 @@
+import os
+import glob
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import classification_report
+import numpy as np
+
+
+folder_1 = r"C:\Users\86178\Desktop\TF-IDF基线模型评估语料\1"
+folder_2 = r"C:\Users\86178\Desktop\TF-IDF基线模型评估语料\2"
+
+
+def load_documents_from_folder(folder_path):
+    documents = []
+    labels = []
+    for txt_file in glob.glob(os.path.join(folder_path, "*.txt")):
+        with open(txt_file, 'r', encoding='utf-8') as file:
+          
+            content = file.read().strip().replace('\n', ' ')  
+            documents.append(content)
+           
+            label = os.path.basename(txt_file)[0]  
+            labels.append(label)
+    return documents, labels
+
+
+docs_1, labels_1 = load_documents_from_folder(folder_1)
+docs_2, labels_2 = load_documents_from_folder(folder_2)
+
+
+documents = docs_1 + docs_2
+labels = labels_1 + labels_2
+
+
+print(f"Total number of documents: {len(documents)}")  
+
+
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(documents)
+
+
+print(f"Shape of the TF-IDF matrix: {X.shape}")  
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, labels, test_size=0.3, random_state=42)
+
+
+svm_classifier = SVC(kernel='linear', random_state=42)
+
+
+svm_classifier.fit(X_train, y_train)
+
+
+y_pred = svm_classifier.predict(X_test)
+
+
+report = classification_report(y_test, y_pred, output_dict=True)
+
+
+for label, metrics in report.items():
+    if label != 'accuracy':
+        for metric, value in metrics.items():
+            if isinstance(value, float):
+                metrics[metric] = round(value, 3)
+
+
+print("Classification Report (Rounded to 3 decimal places):")
+for label, metrics in report.items():
+    if label != 'accuracy':
+        print(f"\nLabel: {label}")
+        for metric, value in metrics.items():
+            print(f"  {metric}: {value}")
+    
+
+new_document = ["Python is great for data science"]  
+X_new = vectorizer.transform(new_document)
+new_pred = svm_classifier.predict(X_new)
+print("Predicted Category for the new document:", new_pred[0])
